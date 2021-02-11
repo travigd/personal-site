@@ -8,9 +8,9 @@ import { faLinkedin } from "@fortawesome/free-brands-svg-icons/faLinkedin";
 export const SocialRow = () => {
   return (
     <div className={"social-row"}>
-      <SocialIcon icon={faGithub} href={socials.github} />
-      <SocialIcon icon={faTwitter} href={socials.twitter} />
-      <SocialIcon icon={faLinkedin} href={socials.linkedin} />
+      <SocialIcon label="GitHub" icon={faGithub} href={socials.github} />
+      <SocialIcon label="Twitter" icon={faTwitter} href={socials.twitter} />
+      <SocialIcon label="LinkedIn" icon={faLinkedin} href={socials.linkedin} />
       <style jsx>{`
         .social-row {
           display: flex;
@@ -25,11 +25,12 @@ export const SocialRow = () => {
 interface SocialIconProps {
   icon: typeof faGithub;
   href: string;
+  label: string;
 }
-const SocialIcon = ({ icon, href }: SocialIconProps) => {
+const SocialIcon = ({ icon, href, label }: SocialIconProps) => {
   return (
     <>
-      <a href={href}>
+      <a href={href} aria-label={label}>
         <FontAwesomeIcon icon={icon} className={"social-icon"} fixedWidth />
       </a>
       <style jsx>
