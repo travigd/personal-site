@@ -36,6 +36,7 @@ const SocialIcon = ({ icon, href, label }: SocialIconProps) => {
       <style jsx>
         {`
           a {
+            color: inherit;
             font-size: 2rem;
             display: block;
           }

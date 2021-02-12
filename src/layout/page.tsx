@@ -10,6 +10,7 @@ export const PageLayout = ({ children, ...rest }: PageLayoutProps) => {
       <style jsx>{`
         main {
           padding: 1rem;
+          width: 100%;
           max-width: 1000px;
           margin: auto auto;
         }

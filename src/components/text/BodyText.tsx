@@ -12,6 +12,7 @@ export const BodyText = ({
       <style jsx>{`
         :global(p) {
           line-height: 1.25em;
+          padding: 0.25em 0;
         }
       `}</style>
     </div>

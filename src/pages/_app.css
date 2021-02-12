@@ -2,23 +2,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap");
 
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-* {
-  box-sizing: border-box;
-}
-
 :root {
   --type-t50: 0.87rem;
   --type-t75: 0.93rem;
@@ -30,9 +13,30 @@ a {
 }
 
 :root {
-  --color-rasp: #c33149;
-  --color-frost: #7698b3;
-  --color-sky: #83b5d1;
-  --color-space: #1a1b41;
-  --color-black: #000000;
+  --color-rasp: hsl(350, 60%, 48%);
+  --color-frost: hsl(207, 45%, 35%);
+  --color-sky: hsl(202, 46%, 67%);
+  --color-space: hsl(238, 43%, 18%);
+  --color-black: hsl(0, 0%, 0%);
+
+  --color-text: #111111;
+  --color-link: var(--color-frost);
+}
+
+html,
+body {
+  color: var(--color-text);
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
 }

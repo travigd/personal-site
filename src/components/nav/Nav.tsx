@@ -53,7 +53,7 @@ const NavMenu = ({ open }: { open: boolean }) => {
     <ul className={"nav-list"}>
       <NavItem href={"/"}>about</NavItem>
       <NavItem href={"/cats"}>cats</NavItem>
-      <NavItem href={"/posts"}>blog</NavItem>
+      <NavItem href={"/posts"}>posts</NavItem>
       <style jsx>{`
         .nav-list {
           list-style: none;
