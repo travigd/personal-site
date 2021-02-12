@@ -1,5 +1,6 @@
 import React from "react";
 import { Font, TextSize } from "@/theme";
+import css from "styled-jsx/css";
 
 type HeadingLevel = `h${1 | 2 | 3 | 4}`;
 
@@ -11,9 +12,16 @@ export interface HeadingProps {
 }
 
 export const Heading = ({ level: Elt, children, size }: HeadingProps) => {
+  const custom = !!size
+    ? css.resolve`
+        .heading {
+          font-size: ${size};
+        }
+      `
+    : null;
   return (
     <>
-      <Elt className={"heading"}>{children}</Elt>
+      <Elt className={`heading ${custom?.className || ""}`}>{children}</Elt>
       <style jsx>
         {`
           .heading {
@@ -27,23 +35,18 @@ export const Heading = ({ level: Elt, children, size }: HeadingProps) => {
           h1 {
             font-size: ${TextSize.T400};
           }
-          h2& {
+          h2 {
             font-size: ${TextSize.T300};
           }
-          h3& {
+          h3 {
             font-size: ${TextSize.T200};
           }
-          h4& {
+          h4 {
             font-size: ${TextSize.T100};
           }
         `}
       </style>
-
-      <style jsx>{`
-        .heading {
-          font-size: ${size};
-        }
-      `}</style>
+      {custom?.styles}
     </>
   );
 };
