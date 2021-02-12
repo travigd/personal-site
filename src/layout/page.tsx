@@ -1,14 +1,11 @@
 import React from "react";
-import { AtRule } from "csstype";
-import { BaseLayout } from "./base";
+import { BaseLayout, BaseLayoutProps } from "./base";
 
-export interface PageLayoutProps {
-  children: React.ReactNode;
-}
+export interface PageLayoutProps extends BaseLayoutProps {}
 
-export const PageLayout = ({ children }: PageLayoutProps) => {
+export const PageLayout = ({ children, ...rest }: PageLayoutProps) => {
   return (
-    <BaseLayout>
+    <BaseLayout {...rest}>
       <main>{children}</main>
       <style jsx>{`
         main {

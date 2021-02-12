@@ -6,14 +6,23 @@ import site from "@/config/site.json";
 
 export interface BaseLayoutProps {
   children: React.ReactNode;
-  title: string;
+  pageTitle: string | null;
+  appendSiteTitle?: boolean;
 }
 
-export const BaseLayout = ({ children, title }: BaseLayoutProps) => {
+export const BaseLayout = ({
+  children,
+  pageTitle,
+  appendSiteTitle = true,
+}: BaseLayoutProps) => {
   return (
     <div className={"root"}>
       <Head>
-        <title>{`${title} | ${site.title}`}</title>
+        <title>
+          {pageTitle && appendSiteTitle
+            ? `${pageTitle} | ${site.title}`
+            : pageTitle || site.title}
+        </title>
       </Head>
       <div className={"nav"}>
         <Nav />

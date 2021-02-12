@@ -1,13 +1,11 @@
 import React from "react";
-import { BaseLayout } from "./base";
+import { BaseLayout, BaseLayoutProps } from "./base";
 
-export interface StoryLayoutProps {
-  children: React.ReactNode;
-}
+export interface StoryLayoutProps extends BaseLayoutProps {}
 
-export const StoryLayout = ({ children }: StoryLayoutProps) => {
+export const StoryLayout = ({ children, ...props }: StoryLayoutProps) => {
   return (
-    <BaseLayout>
+    <BaseLayout {...props}>
       <main>{children}</main>
       <style jsx>{`
         main {
