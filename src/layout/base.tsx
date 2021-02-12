@@ -1,3 +1,4 @@
+import { Breakpoint } from "@/theme";
 import Head from "next/head";
 import React from "react";
 
@@ -30,10 +31,16 @@ export const BaseLayout = ({
       {children}
       <style jsx>{`
         .root {
-          display: flex;
-          flex-flow: row nowrap;
           min-height: 100vh;
           padding: 4rem 0;
+          display: flex;
+          flex-flow: column nowrap;
+        }
+
+        @media only screen and (min-width: ${Breakpoint.Mobile}) {
+          .root {
+            flex-flow: row nowrap;
+          }
         }
       `}</style>
     </div>

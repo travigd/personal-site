@@ -1,10 +1,9 @@
-import { NextPage } from "next";
-import React from "react";
-
 import { Heading } from "@/components/heading";
 import { SocialRow } from "@/components/social";
 import { PageLayout } from "@/layout/page";
 import { Color, TextSize } from "@/theme";
+import { NextPage } from "next";
+import React from "react";
 
 const AboutPage: NextPage = () => {
   return (
@@ -16,6 +15,9 @@ const AboutPage: NextPage = () => {
             color: ${Color.Raspberry};
           }
         `}</style>
+      </Heading>
+      <Heading level={"h2"} size={TextSize.T300}>
+        Cat dad, ethical technology enthusiast, and all-around gay nerd.
       </Heading>
       <SocialRow />
     </PageLayout>

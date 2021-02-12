@@ -1,21 +1,73 @@
 import Link from "next/link";
 import * as React from "react";
-import { Font } from "../../theme/Font";
-import { TextSize } from "@/theme";
-import { Color } from "../../theme/Color";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
+
+import { Breakpoint, Color, Font, TextSize } from "@/theme";
+import { UnstyledButton } from "../button";
 
 export const Nav = () => {
+  // When in mobile mode, whether or not the menu is active
+  const [open, setOpen] = React.useState(false);
+  const toggleOpen = React.useCallback((e: React.SyntheticEvent) => {
+    e.preventDefault();
+    setOpen((open) => !open);
+  }, []);
+
   return (
-    <ul className={"root"}>
-      <NavItem href={"/"}>about</NavItem>
-      <NavItem href={"/posts"}>blog</NavItem>
+    <nav>
+      <NavToggle toggleOpen={toggleOpen} />
+      <NavMenu open={open} />
+    </nav>
+  );
+};
+
+const NavToggle = ({
+  toggleOpen,
+}: {
+  toggleOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) => {
+  return (
+    <div className={"root"}>
+      <UnstyledButton onClick={toggleOpen} aria-label={"toggle navigation"}>
+        <FontAwesomeIcon className={`icon`} icon={faBars} role={"button"} />
+      </UnstyledButton>
       <style jsx>{`
         .root {
+          font-size: 2rem;
+          padding: 1rem;
+        }
+
+        @media only screen and (min-width: ${Breakpoint.Mobile}) {
+          .root {
+            display: none;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+const NavMenu = ({ open }: { open: boolean }) => {
+  return (
+    <ul className={"nav-list"}>
+      <NavItem href={"/"}>about</NavItem>
+      <NavItem href={"/cats"}>cats</NavItem>
+      <NavItem href={"/posts"}>blog</NavItem>
+      <style jsx>{`
+        .nav-list {
           list-style: none;
-          width: 8rem;
-          display: flex;
+          // Note: open only actually matters when we're in mobile mode
+          display: ${open ? "flex" : "none"};
           flex-flow: column nowrap;
-          align-items: flex-end;
+        }
+
+        @media only screen and (min-width: ${Breakpoint.Mobile}) {
+          .nav-list {
+            width: 8rem;
+            display: flex;
+            align-items: flex-end;
+          }
         }
       `}</style>
     </ul>
