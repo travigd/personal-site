@@ -1,10 +1,14 @@
-const withMDX = require("@next/mdx")({
+import mdx from "@next/mdx";
+import remarkGfm from "remark-gfm";
+
+const withMDX = mdx({
   options: {
-    remarkPlugins: [],
+    remarkPlugins: [remarkGfm],
     rehypePlugins: [],
   },
 });
-module.exports = withMDX({
+
+export default withMDX({
   pageExtensions: ["js", "jsx", "tsx", "mdx"],
   webpack(config) {
     config.module.rules.push({

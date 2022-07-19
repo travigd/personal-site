@@ -1,0 +1,23 @@
+import { PageLayout } from "@/layout/page";
+import React from "react";
+import { SocialRow } from "../components/social";
+
+export default function Layout({ children }) {
+  return (
+    <PageLayout pageTitle={"About"}>
+      <div className="prose lg:prose-xl">{children}</div>
+    </PageLayout>
+  );
+}
+
+{/* inline-block here because I'd rather die than have my name span two lines */}
+
+# The homepage of <span className="text-indigo-800 inline-block">Travis DePrato</span>
+
+<div className="text-xl">
+  Snarky, cynical, over-caffeinated gay leftist who writes about technology and
+  why busses are really fucking cool. Would rather be petting a cat. Follow me
+  on Twitter or DM me on Grindr.
+</div>
+
+<SocialRow />

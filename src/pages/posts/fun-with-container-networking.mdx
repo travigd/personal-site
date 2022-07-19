@@ -1,0 +1,488 @@
+import Image from "next/image";
+import { PageLayout } from "../../layout/page";
+
+export const ABOUT = {
+  title: `DIY container networking: veths, netnses, and iproute2, oh my!`,
+  summary:
+    `Container networking isn't so hard... as long as you have some nerd from the Internet who spent many hours and lost much hair in the process to explain it to you. ` +
+    `Let's go on a whirlwind tour of how container networking works by creating our own!`,
+  date: "2022-07-19",
+};
+
+export const Fig = ({ src, children }) => {
+  return (
+    <figure className="max-w-xl mx-auto">
+      <Image src={src} layout={"responsive"} width={300} height={100} />
+      <figcaption>{children}</figcaption>
+    </figure>
+  );
+};
+
+# {ABOUT.title}
+
+Container networking seems complicated. In fact, often times, container
+networking **is** complicated. Who'da thunk it?
+
+Luckily, we can peel back the
+[layers of turtles](https://en.wikipedia.org/wiki/Turtles_all_the_way_down) to
+get a pretty solid conceptual understanding of how container networking actually
+works.
+
+## A brief digression: containers aren't fancy
+
+Containers often seem mystical and incomprehensible. But, like most things in
+science and engineering, turns out it's just a little bit of novelty on top of
+lots of already established knowledge.
+
+Containers are, at their core, just a collection of Linux kernel features
+presented in a logical way. The most important feature for the purpose of this
+article is [_Linux namespaces_](https://en.wikipedia.org/wiki/Linux_namespaces),
+and more specifically, _network namespaces_.
+
+Other important features for containers include:
+
+- chroot &mdash; containers can only access a subset of the filesystem allowed
+  by the host
+- control groups (cgroup) &mdash; containers can be limited to a subset of the
+  CPU and memory of the host
+- process (PID) namespaces &mdash; containers have a limited view of the process
+  tree, usually limited to only viewing processes from the same container
+- Linux capabilities &mdash; containers can be limited in the ways their allowed
+  to perform privileged operations with the kernel (such as changing the network
+  configuration)
+
+This isn't an exhaustive list, and container runtimes are not exactly _simple_,
+but at the very least, they build logically on many of these Linux primitives.
+
+## Network namespaces and me
+
+A network namespace (NetNS) provides an isolated view of the network
+configuration. Each network namespace has its own interfaces, IP addresses,
+routing rules, and firewall configuration (we'll talk about each of these!).
+
+Conceptually, each network namespace is like having a different computer in the
+same room. Just like in real life, these different namespaces can't communicate
+with each other unless we arrange for that (in much the same way that two
+computers can't communicate with each other unless with connect them somehow).
+
+To see how network namespaces work, we'll use the `ip` command which is provided
+by [`iproute2`](https://wiki.linuxfoundation.org/networking/iproute2). The `ip`
+command comes on most Linux distributions nowadays and is essentially the Swiss
+army knife of Linux networking.
+
+Creating a network namespace is a single command.
+
+```bash
+$ ip netns add container-one
+```
+
+We can execute commands within the namespace with the `ip netns exec` command.
+For example, let's look at all the configured interfaces (links in `iproute2`
+terminology) in the new namespace.
+
+```sh
+$ ip netns exec container-one ip link list
+  1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+      link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+```
+
+By default, new network namespaces only contain a loopback (i.e., localhost)
+interface. Importantly, this is actually a different loopback interface than the
+host's loopback interface, so a service listening on `localhost:8888` on the
+host won't be able accessible from within the container.
+
+<Fig src="/uploads/fwcn-netns.svg">
+  The new network namespace `container-one` isn't connected to anything else. It
+  can't access the internet or anything else. I promise it gets more
+  interesting!
+</Fig>
+
+<div className="hidden">
+
+In most container runtimes (such as Docker), every container has its own network
+namespace. The individual network namespaces are connected to each other
+depending on the container's network configuration. With Docker, for example, by
+default, the container namespace is connected to the host's namespace
+[^docker-net-host].
+
+[^docker-net-host]:
+    This is different from the `--network host` flag to `docker run` which
+    actually doesn't create **any** new network namespaces. With
+    `--network host`, the container has full access to all of the host's
+    interfaces. This means that the container can even access services that are
+    listening on the localhost interface of the host machine.
+
+In some more advanced configurations, containers can be connected to each other
+in different ways to control which containers can communicate with each other.
+For example, a container named `rest-api` might be connected to the same network
+as the `database` container while `web-frontend` is allowed to communicate with
+`rest-api` but not `database`. In Docker, this is usually done with
+[user-defined bridge networks](https://docs.docker.com/network/network-tutorial-standalone/#use-user-defined-bridge-networks).
+
+</div>
+## Veths and connecting namespaces
+
+A `veth` is a virtual ethernet device. You can think of this like an ethernet
+cable. Critically, just like ethernet cables have two ends, `veth`s always come
+in pairs.
+
+We often use `veth`s to connect two network namespaces together. This is
+analogous to connecting two computers in the same room together with an ethernet
+cable. In this case, we're connecting the two machines directly (e.g., without
+using a router or bridge &mdash; we'll get there I promise!).
+
+To do this, we need a few `ip` commands. Note that the argument syntax is a bit
+nonstandard: instead of `--type=eth0`, the `ip` command usually uses the
+notation `type eth0`. I've added newlines to the commands below to help
+delineate the parameters and arguments.
+
+```sh
+# Create a new veth pair.
+# One side of the veth will be named veth1 and the other will be named veth1a.
+$ ip link add veth1 \
+  type veth \
+  peer name veth1a
+
+# Move the veth1a device to the container namespace. This effectively connects
+# the host namespace to the container-one namespace.
+$ ip link set veth1a netns container-one
+
+# We usually set the interface name to something standard in the container
+# namespace. Interface names only need to be unique within a namespace, so
+# multiple containers can each have their own eth0.
+# Note the `-n container-one` syntax means we'll perform the operation in the
+# container namespace; this is necessary since that side of the veth only
+# exists in that namespace now!
+$ ip -n container-one link set dev veth1a name eth0
+
+# Finally, we need to set the veth up. This tells the kernel to start
+# considering this device for routing packets (though we'll need to assign
+# IP addresses first!).
+$ ip link set veth1 up
+$ ip -n container-one link set eth0 up
+```
+
+We can see the state of the world as seen by the host and container network
+namespaces:
+
+```sh
+# From the host's perspective...
+# (note: this output will depend on your host's network configuration)
+$ ip link list
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: ens4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1460 qdisc pfifo_fast state UP mode DEFAULT group default qlen 1000
+    link/ether 42:01:c0:a8:1f:64 brd ff:ff:ff:ff:ff:ff
+    altname enp0s4
+82: veth1@if81: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 72:4e:e3:d6:cf:6e brd ff:ff:ff:ff:ff:ff link-netns container-one
+
+# From the container's perspective...
+$ ip -n container-one link list
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+81: eth0@if82: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 0e:98:71:83:72:81 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+```
+
+Graphically, we have something like this:
+
+<Fig src="/uploads/fwcn-veth.svg">
+  The `container-one` NetNS is connected via a `veth` pair to the host NetNS. If
+  the routing configuration is setup correctly in each namespace (hey! keep
+  reading!), the two machines can communicate.
+</Fig>
+
+## Adding IP addresses and routes
+
+We need to assign IP address to the interfaces so they can communicate. In the
+real world, outside of contrived blog posts about container networking, this
+will all be setup by your operating system, but hey, you just so happen to be
+reading a contrived blog post about container networking. When in Rome!
+
+Let's use the `192.168.99.0/24` network to choose IP addresses from (for the
+uninitiated, the `192.168.XXX.XXX` range is reserved for local networking
+&mdash; like your home LAN &mdash; and the `/24` means that any address in the
+`192.168.99.0` belongs to our network).
+
+```sh
+# Add 192.168.99.1 to the host's interface
+$ ip addr add 192.168.99.1/24 dev veth1
+# Add 192.168.99.2 to the container's interface
+$ ip -n container-one addr add 192.168.99.2/24 dev eth0
+```
+
+Okay, cool, wonderful and awesome! Now that we have IP addresses assigned to the
+interfaces, we can ping it!
+
+```sh
+# Ping the container from the host
+$ ping -c 1 192.168.99.2
+PING 192.168.99.2 (192.168.99.2) 56(84) bytes of data.
+64 bytes from 192.168.99.2: icmp_seq=1 ttl=64 time=0.062 ms
+
+--- 192.168.99.2 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.062/0.062/0.062/0.000 ms
+
+# Ping the host from the container
+$ ip netns exec container-one ping -c 1 192.168.99.1
+PING 192.168.99.1 (192.168.99.1) 56(84) bytes of data.
+64 bytes from 192.168.99.1: icmp_seq=1 ttl=64 time=0.042 ms
+
+--- 192.168.99.1 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.042/0.042/0.042/0.000 ms
+```
+
+### A brief (but luckily for you, optional!) overview of kernel packet routing
+
+By default, your operating system will configure network routes to reach a few
+places: `localhost`, your local area network (i.e., everything on this side of
+your router), and the internet (via your router). We can see these routes
+(excluding `localhost`, which is routed via a different table &mdash; that's
+outside the scope of this discussion).
+
+```sh
+$ ip route list
+default via 192.168.16.1 dev ens4
+192.168.16.0/24 via 192.168.16.0/24 dev ens4 scope link
+192.168.99.0/24 dev veth1 proto kernel scope link src 192.168.99.1
+```
+
+The first route is the default route. It's used if no other more specific route
+is available, and in this case, tells the kernel to forward that traffic to the
+router (which usually knows how to access the broader internet).
+
+The second route is the LAN route. It says that anything in the `192.168.16.XXX`
+range is reachable directly via the `ens4` network device. This traffic skips
+the router hop since all IP addresses are directly reachable (excluding a long
+and not super interesting digression into
+[ARP](https://en.wikipedia.org/wiki/Address_Resolution_Protocol)).
+
+Finally, the third route exists because we added the address `192.168.99.1/24`
+to the device `veth1` (and since the device is in state `UP`): the kernel
+implicitly adds a routing rule to route all packets in the `192.168.99.0/24`
+subnet through `veth1` (that is, if a packet is to a `192.168.99.XXX` address,
+it is sent out through the `veth1` device).
+
+## Bridge interfaces
+
+We're back to the non-optional stuff here, pay attention kids!
+
+Usually we don't create `veth`s directly between the host and the container.
+Instead, we create a bridge and assign the host end of the `veth` (remember --
+`veth`s always come in pairs!) to the bridge. This allows multiple containers to
+communicate (if they're connected to the same bridge) which is usually a
+requirement.
+
+We can create a bridge rather simply:
+
+```sh
+$ ip link add bridge0 type bridge
+$ ip link set bridge0 up
+
+$ ip link
+# ...<snip>...
+83: bridge0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether aa:a8:75:ec:75:2f brd ff:ff:ff:ff:ff:ff
+```
+
+Now we need to recreate the `veth` pair and configure it to be a member of the
+bridge.
+
+```
+# Delete the veth (this deletes both ends)
+$ ip link del veth1
+
+# Create the veth...
+$ ip link add veth1 \
+  type veth \
+  peer name veth1a
+
+# ...and add it to the bridge
+$ ip link set veth1 master bridge0
+
+# And as before, configure the various ends of the veth
+ip link set veth1a netns container-one
+ip -n container-one link set dev veth1a name eth0
+ip link set veth1 up
+ip -n container-one link set eth0 up
+```
+
+Assigning addresses is just a little bit different. We assign the host end of
+the IP address to the bridge rather than the `veth`:
+
+```
+$ ip addr add 192.168.99.1/24 dev bridge0
+$ ip -n container-one addr add 192.168.99.2/24 dev eth0
+
+# Let's confirm that we can still reach the container...
+$ ping -c 1 192.168.99.2
+# ...<snip>...
+
+# and that the container can still reach the host....
+$ ip netns exec container-one ping -c 1 192.168.99.1
+# ...<snip>....
+```
+
+Let's also quickly create another network namespace and connect it to the
+bridge!
+
+```sh
+$ ip netns add container-two
+$ ip link add veth2 \
+  type veth \
+  peer name veth2a
+$ ip link set veth2 master bridge0
+$ ip link set veth2a netns container-two
+$ ip -n container-two link set dev veth2a name eth0
+$ ip link set veth2 up
+$ ip -n container-two link set eth0 up
+
+# Add a different ip address to the container's interface
+ip -n container-two addr add 192.168.99.3/24 dev eth0
+
+# Confirm that the host can reach the container and vice versa...
+$ ping -c 1 192.168.99.3
+$ ip netns exec container-two ping -c 1 192.168.99.1
+```
+
+We have something that looks like this:
+
+<Fig src="/uploads/fwcn-bridge.svg">
+  Both `container-one` and `container-two` are connected to the same bridge
+  (which lives in the hosts network namespace). When a packet reaches the
+  bridge, it is routed to the correct `veth` if there is one that matches the
+  address[^technically-this-is-arp].
+</Fig>
+
+[^technically-this-is-arp]:
+    Technically (to the best of my very limited understanding), the bridge
+    doesn't know which `veth` to send a given packet to. It maintains a list of
+    IP-to-MAC-address associations using
+    [ARP](https://en.wikipedia.org/wiki/Address_Resolution_Protocol) and each
+    end of the `veth` has a unique MAC address.
+
+## Routing traffic to the internet
+
+Finally, we might wish to route traffic to the internet. Since our host only has
+one IP address connected to the LAN, we'll need to use NAT (network address
+translation). Put simply, NAT intercepts outgoing packets from an internal IP
+address, routes them to the internet using the host's IP address, and re-routes
+incoming packets back to the original internal IP address.
+
+To do this, we'll need to do a few things to setup the host to NAT packets:
+
+```sh
+# First, we'll need to tell the kernel that it should forward packets between
+# interfaces. By default, the kernel sees a packet coming in on `bridge0` and
+# won't automatically forward it out of `ens4`.
+$ sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+
+# Second, we'll need to configure the iptables firewall rules to allow
+# forwarding packets that come in on `bridge0`.
+iptables -I FORWARD -i bridge0 -j ACCEPT
+
+# And finally, we'll need to configure iptables to NAT packets.
+iptables -t nat -A POSTROUTING -o ens4 -j MASQUERADE
+```
+
+We also need to make one minor modification to the container networks. The
+default IP routing rules only know how to route traffic destined for the
+`192.168.99.0/24` network. We need to install a default route that sends all
+other traffic to the gateway (in this case, the bridge):
+
+```
+# Let's confirm that we don't know how to route to the internet
+$ ip -n container-one route list
+192.168.99.0/24 dev eth0 proto kernel scope link src 192.168.99.3
+
+# And now let's add a default rule to forward the packet to the bridge
+# interface where the host's networking configuration will NAT it to the
+# external internet
+$ ip -n container-one route add default via 192.168.99.1
+```
+
+And finally, we can route traffic to the Internet from our container:
+
+```
+$ ip netns exec container-one ping -c 1 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=18.5 ms
+```
+
+<Fig src="/uploads/fwcn-final.svg">
+  Both containers are connected to a single bridge. The dashed line between the
+  bridge and the `ens4` device (which is the route to the broader Internet)
+  represents our IP forwarding config that we setup above. Packets from a
+  container are NAT-ed when they exit the `ens4` device (since the host only has
+  one external IP address to use).
+</Fig>
+
+## Appendix: Firewalling containers and routing out of different network interfaces
+
+The interaction between IP routing (`iproute2`) and the firewall (`iptables`) is
+non-obvious. Critically, some `iptables` rules are applied before making a
+decision on how to route the packet and some are made after. See
+[this lovely diagram](http://www.adminsehow.com/2011/09/iptables-packet-traverse-map/)
+that describes where in the process of handling a packet the routing and
+firewall decisions are made (note: `filter FORWARD` and `filter INPUT` are where
+the `ACCEPT`/`REJECT`/`DROP` rules will be applied).
+
+The origin of this blog post involved your handsome and charming author
+attempting to figure out how to route packets from a container out of one of two
+network devices on the host while denying access to any internal IP addresses,
+so here are a few lessons learned.
+
+- To filter packets originating from containers, use
+  `iptables -A FORWARD -i bridge0 ...` rules. All your firewalling should happen
+  within the `FORWARD` chain (never the `nat/POSTROUTING` chain, especially
+  since it's impossible to filter based on input device in that chain).
+- It's helpful to have a dedicated routing table for the container traffic.
+  You'll need to create the routing rules that were added by default manually.
+  For example,
+
+  ```sh
+  # 88 is an arbitrary number; custom routing tables are identified by integers
+  # in the range [1,252]. You can define a name by adding an entry to
+  # /etc/iproute2/rt_tables.
+  ip rule add oif bridge0 lookup 88
+  ip rule add iif bridge0 lookup 88
+  ip rule add to 192.168.99.0/24 lookup 88
+  ip rule add from 192.168.99.0/24 lookup 88
+
+  # This should be the gateway for the ens5 device
+  ip route add default via 10.32.0.1 dev ens5 table 88
+  # And we need to add a route to reach other containers on the bridge
+  ip route add 192.168.99.0/24 dev bridge0 table 88
+  ```
+
+  Depending on your network configuration, you may need to add more routes.
+
+- If you, like me, wish to filter access to internal subnets, the following
+  should work:
+
+  ```sh
+  RANGES="10.0.0.0/8 100.64.0.0/10 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16"
+  for cidr in $RANGES; do
+    iptables -A FORWARD -i bridge0 -d $cidr -j REJECT
+  done
+  iptables -A FORWARD -i bridge0 -o ens5 -j ACCEPT
+  ```
+
+- Make debugging easier by adding a
+  `iptables -I FORWARD -j LOG --log-prefix "[FORWARD] "` rule. You can view
+  these logs with `dmesg`.
+
+  Make sure that your container network namespaces are still able to reach a DNS
+  server (since it's often configured to a local IP address).
+
+export default function Page({ children }) {
+  return (
+    <PageLayout pageTitle={ABOUT.title}>
+      <div className="prose lg:prose-xl">{children}</div>
+    </PageLayout>
+  );
+}

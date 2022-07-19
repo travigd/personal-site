@@ -12,7 +12,7 @@ export const PageLayout = ({ children, ...rest }: PageLayoutProps) => {
           padding: 1rem;
           width: 100%;
           max-width: 1000px;
-          margin: auto auto;
+          margin: 0 auto;
         }
       `}</style>
     </BaseLayout>
