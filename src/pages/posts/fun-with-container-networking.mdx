@@ -9,10 +9,16 @@ export const ABOUT = {
   date: "2022-07-19",
 };
 
-export const Fig = ({ src, children }) => {
+export const Fig = ({ src, alt, children }) => {
   return (
     <figure className="max-w-xl mx-auto">
-      <Image src={src} layout={"responsive"} width={300} height={100} />
+      <Image
+        src={src}
+        layout={"responsive"}
+        width={300}
+        height={100}
+        alt={alt}
+      />
       <figcaption>{children}</figcaption>
     </figure>
   );
@@ -21,18 +27,15 @@ export const Fig = ({ src, children }) => {
 # {ABOUT.title}
 
 Container networking seems complicated. In fact, often times, container
-networking **is** complicated. Who'da thunk it?
-
-Luckily, we can peel back the
-[layers of turtles](https://en.wikipedia.org/wiki/Turtles_all_the_way_down) to
-get a pretty solid conceptual understanding of how container networking actually
-works.
+networking **is** complicated. Who'da thunk it? Luckily, we can peel back the
+onion to get a pretty solid conceptual understanding of how container networking
+actually works under the hood.
 
 ## A brief digression: containers aren't fancy
 
 Containers often seem mystical and incomprehensible. But, like most things in
-science and engineering, turns out it's just a little bit of novelty on top of
-lots of already established knowledge.
+science, life, and engineering, it turns out to be just a little bit of novelty
+on top of lots of already established knowledge and practice.
 
 Containers are, at their core, just a collection of Linux kernel features
 presented in a logical way. The most important feature for the purpose of this
@@ -84,57 +87,49 @@ terminology) in the new namespace.
 $ ip netns exec container-one ip link list
   1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
       link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+
+# For ip commands, we can also use the `-n` flag to specify the network
+# namespace to execute in. The command above is equivalent to:
+$ ip -n container-one ip link list
+  1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+      link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
 ```
 
 By default, new network namespaces only contain a loopback (i.e., localhost)
 interface. Importantly, this is actually a different loopback interface than the
 host's loopback interface, so a service listening on `localhost:8888` on the
-host won't be able accessible from within the container.
+host won't be able accessible from within the container (and vice versa).
 
-<Fig src="/uploads/fwcn-netns.svg">
+<Fig
+  src="/uploads/fwcn-netns.svg"
+  alt={
+    "Two network namespaces: the host namespace contains a loopback interface " +
+    "and an ethernet interface named ens4 that is connected to the internet; " +
+    "the container namespace only contains a loopback interface and is not " +
+    "connected to the host namespace."
+  }
+>
   The new network namespace `container-one` isn't connected to anything else. It
   can't access the internet or anything else. I promise it gets more
   interesting!
 </Fig>
 
-<div className="hidden">
-
-In most container runtimes (such as Docker), every container has its own network
-namespace. The individual network namespaces are connected to each other
-depending on the container's network configuration. With Docker, for example, by
-default, the container namespace is connected to the host's namespace
-[^docker-net-host].
-
-[^docker-net-host]:
-    This is different from the `--network host` flag to `docker run` which
-    actually doesn't create **any** new network namespaces. With
-    `--network host`, the container has full access to all of the host's
-    interfaces. This means that the container can even access services that are
-    listening on the localhost interface of the host machine.
-
-In some more advanced configurations, containers can be connected to each other
-in different ways to control which containers can communicate with each other.
-For example, a container named `rest-api` might be connected to the same network
-as the `database` container while `web-frontend` is allowed to communicate with
-`rest-api` but not `database`. In Docker, this is usually done with
-[user-defined bridge networks](https://docs.docker.com/network/network-tutorial-standalone/#use-user-defined-bridge-networks).
-
-</div>
 ## Veths and connecting namespaces
 
 A `veth` is a virtual ethernet device. You can think of this like an ethernet
 cable. Critically, just like ethernet cables have two ends, `veth`s always come
 in pairs.
 
-We often use `veth`s to connect two network namespaces together. This is
-analogous to connecting two computers in the same room together with an ethernet
-cable. In this case, we're connecting the two machines directly (e.g., without
-using a router or bridge &mdash; we'll get there I promise!).
+We often use `veth`s to connect two network namespaces together, just as if we
+were connecting two computers in the same room together with an ethernet cable.
+In this case, we're connecting the two machines directly (e.g., without using a
+router or bridge &mdash; we'll get there I promise!).
 
 To do this, we need a few `ip` commands. Note that the argument syntax is a bit
-nonstandard: instead of `--type=eth0`, the `ip` command usually uses the
-notation `type eth0`. I've added newlines to the commands below to help
-delineate the parameters and arguments.
+nonstandard: instead of the usual convention of `--type=eth0`, the `ip` command
+usually uses the notation `type eth0`. Since long strings of arguments can be
+hard to read, I've added line breaks to the commands below to make it easier to
+read.
 
 ```sh
 # Create a new veth pair.
@@ -145,7 +140,8 @@ $ ip link add veth1 \
 
 # Move the veth1a device to the container namespace. This effectively connects
 # the host namespace to the container-one namespace.
-$ ip link set veth1a netns container-one
+$ ip link set veth1a \
+  netns container-one
 
 # We usually set the interface name to something standard in the container
 # namespace. Interface names only need to be unique within a namespace, so
@@ -153,7 +149,8 @@ $ ip link set veth1a netns container-one
 # Note the `-n container-one` syntax means we'll perform the operation in the
 # container namespace; this is necessary since that side of the veth only
 # exists in that namespace now!
-$ ip -n container-one link set dev veth1a name eth0
+$ ip -n container-one link set veth1a \
+  name eth0
 
 # Finally, we need to set the veth up. This tells the kernel to start
 # considering this device for routing packets (though we'll need to assign
@@ -187,7 +184,13 @@ $ ip -n container-one link list
 
 Graphically, we have something like this:
 
-<Fig src="/uploads/fwcn-veth.svg">
+<Fig
+  src="/uploads/fwcn-veth.svg"
+  alt={
+    "The host namespace now contains a device named veth1 that is connected " +
+    "to a device named eth0 in the container's network namespace."
+  }
+>
   The `container-one` NetNS is connected via a `veth` pair to the host NetNS. If
   the routing configuration is setup correctly in each namespace (hey! keep
   reading!), the two machines can communicate.
@@ -241,7 +244,8 @@ By default, your operating system will configure network routes to reach a few
 places: `localhost`, your local area network (i.e., everything on this side of
 your router), and the internet (via your router). We can see these routes
 (excluding `localhost`, which is routed via a different table &mdash; that's
-outside the scope of this discussion).
+outside the scope of this discussion, but you can see these routes with
+`ip route list table local`).
 
 ```sh
 $ ip route list
@@ -264,19 +268,34 @@ Finally, the third route exists because we added the address `192.168.99.1/24`
 to the device `veth1` (and since the device is in state `UP`): the kernel
 implicitly adds a routing rule to route all packets in the `192.168.99.0/24`
 subnet through `veth1` (that is, if a packet is to a `192.168.99.XXX` address,
-it is sent out through the `veth1` device).
+it is sent out through the `veth1` device). Assigning an entire `/24` subnet to
+the veth might seem like overkill, but theoretically, we could assign multiple
+IP addresses to the container's interface.
 
 ## Bridge interfaces
 
 We're back to the non-optional stuff here, pay attention kids!
 
-Usually we don't create `veth`s directly between the host and the container.
-Instead, we create a bridge and assign the host end of the `veth` (remember --
-`veth`s always come in pairs!) to the bridge. This allows multiple containers to
-communicate (if they're connected to the same bridge) which is usually a
-requirement.
+Usually we don't create `veth`s directly between the host and the container
+(back to our physical compute analogy: we don't usually plug an ethernet cable
+directly into two computers; usually it goes through some kind of router which
+can be connected to other computers!).
 
-We can create a bridge rather simply:
+Instead, we create a bridge[^what-is-a-bridge] and assign the host end of the
+`veth` (remember -- `veth`s always come in pairs!) to the bridge. This allows
+multiple containers to communicate (if they're connected to the same bridge)
+which is usually pretty useful.
+
+[^what-is-a-bridge]:
+    A bridge is a device (either physical or virtual) that connects several
+    subnetworks (though not necessarily discrete subnets &mdash). Oftentimes,
+    bridges just connect directly to individual devices (e.g., your computer is
+    plugged directly into your router, which is acting as a bridge), though
+    bridges can be connected to other devices, such as other bridges (e.g., your
+    computer is connected to a bridge on your desk which is itself connected to
+    your home's internet router).
+
+We can create a bridge in just a few commands:
 
 ```sh
 $ ip link add bridge0 type bridge
@@ -288,8 +307,10 @@ $ ip link
     link/ether aa:a8:75:ec:75:2f brd ff:ff:ff:ff:ff:ff
 ```
 
-Now we need to recreate the `veth` pair and configure it to be a member of the
-bridge.
+Back to our physical world analogies, this bridge isn't connected to anything:
+it's just sitting on your desk with no cables connected. Now we need to recreate
+the `veth` pair and configure it to be a member of the bridge (this is analogous
+to plugging one end of the `veth` into the bridge).
 
 ```
 # Delete the veth (this deletes both ends)
@@ -304,10 +325,10 @@ $ ip link add veth1 \
 $ ip link set veth1 master bridge0
 
 # And as before, configure the various ends of the veth
-ip link set veth1a netns container-one
-ip -n container-one link set dev veth1a name eth0
-ip link set veth1 up
-ip -n container-one link set eth0 up
+$ ip link set veth1a netns container-one
+$ ip -n container-one link set veth1a name eth0
+$ ip link set veth1 up
+$ ip -n container-one link set eth0 up
 ```
 
 Assigning addresses is just a little bit different. We assign the host end of
@@ -336,7 +357,7 @@ $ ip link add veth2 \
   peer name veth2a
 $ ip link set veth2 master bridge0
 $ ip link set veth2a netns container-two
-$ ip -n container-two link set dev veth2a name eth0
+$ ip -n container-two link set veth2a name eth0
 $ ip link set veth2 up
 $ ip -n container-two link set eth0 up
 
@@ -350,7 +371,16 @@ $ ip netns exec container-two ping -c 1 192.168.99.1
 
 We have something that looks like this:
 
-<Fig src="/uploads/fwcn-bridge.svg">
+<Fig
+  src="/uploads/fwcn-bridge.svg"
+  alt={
+    "Three network namespaces: the host namespace, which contains an " +
+    "interface that is connected to the internet as well as a bridge " +
+    "which the veth1 and veth2 devices are connected to; and two " +
+    "container namespaces which each contain an eth0 device connected " +
+    "to the respective veth device in the host namespace."
+  }
+>
   Both `container-one` and `container-two` are connected to the same bridge
   (which lives in the hosts network namespace). When a packet reaches the
   bridge, it is routed to the correct `veth` if there is one that matches the
@@ -366,13 +396,37 @@ We have something that looks like this:
 
 ## Routing traffic to the internet
 
-Finally, we might wish to route traffic to the internet. Since our host only has
-one IP address connected to the LAN, we'll need to use NAT (network address
-translation). Put simply, NAT intercepts outgoing packets from an internal IP
-address, routes them to the internet using the host's IP address, and re-routes
-incoming packets back to the original internal IP address.
+Finally, we probably want to let our containers reach the internet. Since our
+host only has one IP address connected to the LAN, we'll need to use NAT
+(network address translation). Put simply, NAT intercepts outgoing packets from
+an internal IP address, routes them to the internet using the host's IP address,
+and re-routes incoming packets back to the original internal IP address.
+Effectively, as far as the external internet is concerned, traffic from both
+containers will look like it's coming from the host's IP address.
 
-To do this, we'll need to do a few things to setup the host to NAT packets:
+To do this, we'll need to do a few things to setup the host to forward packets
+between interfaces and then NAT packets coming from the bridge device.
+
+Forwarding has a very particular meaning in the context of Linux packet routing.
+There are generally three pathways for a packet to flow through a network
+namespace (these correspond to the various `iptables` chains):
+
+- `INPUT` &mdash; packets that are received by the network namespace and are
+  destined for a process that lives within that namespace (e.g., destined for a
+  webserver listening on port `8080`).
+- `OUTPUT` &mdash; packets that are leaving the network namespace (via some
+  device within it) that originated from a processes that lives within the
+  network namespace (e.g., a `curl` request that is destined for the external
+  internet).
+- `FORWARD` &mdash; packets that are neither being sent nor received by the
+  network namespace, but are being routed _through_ the namespace (e.g., a
+  router receives a packet from a LAN that is destined for the internet: the
+  packet is received on an ethernet port and then is forwarded to the internet
+  via another ethernet port, often with NAT applied).
+
+By default, the kernel will not forward packets between interfaces, so we need
+to tell the kernel that it should (and configure which pathways should be
+allowed for forwarding).
 
 ```sh
 # First, we'll need to tell the kernel that it should forward packets between
@@ -382,10 +436,13 @@ $ sysctl -w net.ipv4.ip_forward=1
 net.ipv4.ip_forward = 1
 
 # Second, we'll need to configure the iptables firewall rules to allow
-# forwarding packets that come in on `bridge0`.
-iptables -I FORWARD -i bridge0 -j ACCEPT
+# forwarding packets that come in on `bridge0` and are destined for the
+# internet (which is reachable on ens4).
+iptables -I FORWARD -i bridge0 -o ens4 -j ACCEPT
 
-# And finally, we'll need to configure iptables to NAT packets.
+# And finally, we'll need to configure iptables to NAT packets. MASQUERADE
+# here refers to the fact that packets from the containers appear to be coming
+# from ens4's IP address.
 iptables -t nat -A POSTROUTING -o ens4 -j MASQUERADE
 ```
 
@@ -413,7 +470,13 @@ PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
 64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=18.5 ms
 ```
 
-<Fig src="/uploads/fwcn-final.svg">
+<Fig
+  src="/uploads/fwcn-final.svg"
+  alt={
+    "The bridge device is now connected inside the host namespace to the " +
+    "ens4 device which is able to reach the internet."
+  }
+>
   Both containers are connected to a single bridge. The dashed line between the
   bridge and the `ens4` device (which is the route to the broader Internet)
   represents our IP forwarding config that we setup above. Packets from a
