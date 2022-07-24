@@ -1,4 +1,3 @@
-import { Breakpoint } from "@/theme";
 import Head from "next/head";
 import React from "react";
 
@@ -17,7 +16,7 @@ export const BaseLayout = ({
   appendSiteTitle = true,
 }: BaseLayoutProps) => {
   return (
-    <div className={"root"}>
+    <div className="min-h-screen flex flex-col md:flex-row md:p-16 gap-4 mx-auto justify-center">
       <Head>
         <title>
           {pageTitle && appendSiteTitle
@@ -25,24 +24,19 @@ export const BaseLayout = ({
             : pageTitle || site.title}
         </title>
       </Head>
-      <div className={"nav"}>
+      <div>
         <Nav />
       </div>
-      {children}
-      <style jsx>{`
-        .root {
-          min-height: 100vh;
-          padding: 4rem 0;
-          display: flex;
-          flex-flow: column nowrap;
-        }
-
-        @media only screen and (min-width: ${Breakpoint.Mobile}) {
-          .root {
-            flex-flow: row nowrap;
-          }
-        }
-      `}</style>
+      <div
+        // min-width: 0 is required to prevent flex children from expanding
+        // past the width allowed by their parent container. The reason for
+        // this is with flexbox, `auto` is calculated as the "ideal" width of
+        // the child (i.e., how wide the child would be if unconstrained).
+        // Interestingly, this only seems to manifest on Safari.
+        className="min-w-0"
+      >
+        {children}
+      </div>
     </div>
   );
 };

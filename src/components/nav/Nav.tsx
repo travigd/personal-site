@@ -1,9 +1,9 @@
+import clsx from "clsx";
 import Link from "next/link";
 import * as React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 
-import { Breakpoint, Color, Font, TextSize } from "@/theme";
 import { UnstyledButton } from "../button";
 
 export const Nav = () => {
@@ -15,7 +15,7 @@ export const Nav = () => {
   }, []);
 
   return (
-    <nav>
+    <nav className="md:h-full md:border-r-2 md:border-r-indigo-100">
       <NavToggle toggleOpen={toggleOpen} />
       <NavMenu open={open} />
     </nav>
@@ -28,48 +28,22 @@ const NavToggle = ({
   toggleOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
   return (
-    <div className={"root"}>
+    <div className="text-[2rem] p-4 md:hidden">
       <UnstyledButton onClick={toggleOpen} aria-label={"toggle navigation"}>
         <FontAwesomeIcon className={`icon`} icon={faBars} role={"button"} />
       </UnstyledButton>
-      <style jsx>{`
-        .root {
-          font-size: 2rem;
-          padding: 1rem;
-        }
-
-        @media only screen and (min-width: ${Breakpoint.Mobile}) {
-          .root {
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   );
 };
 
 const NavMenu = ({ open }: { open: boolean }) => {
   return (
-    <ul className={"nav-list"}>
-      <NavItem href={"/"}>about</NavItem>
+    <ul
+      className={clsx(open ? "flex" : "hidden", "md:flex", "flex-col md:w-32")}
+    >
+      <NavItem href={"/"}>travisty</NavItem>
       <NavItem href={"/cats"}>cats</NavItem>
       <NavItem href={"/posts"}>posts</NavItem>
-      <style jsx>{`
-        .nav-list {
-          list-style: none;
-          // Note: open only actually matters when we're in mobile mode
-          display: ${open ? "flex" : "none"};
-          flex-flow: column nowrap;
-        }
-
-        @media only screen and (min-width: ${Breakpoint.Mobile}) {
-          .nav-list {
-            width: 8rem;
-            display: flex;
-            align-items: flex-end;
-          }
-        }
-      `}</style>
     </ul>
   );
 };
@@ -79,21 +53,11 @@ const NavItem = (p: { href: string; children: React.ReactNode }) => {
     <>
       <li>
         <Link href={p.href}>
-          <a>{p.children}</a>
+          <a className="block md:text-right font-medium p-4 text-indigo-800 hover:text-indigo-900 transition-colors hover:bg-indigo-50">
+            {p.children}
+          </a>
         </Link>
       </li>
-      <style jsx>{`
-        a {
-          display: block;
-          font-family: ${Font.Heading};
-          font-size: ${TextSize.T100};
-          padding: 1rem;
-        }
-
-        a:hover {
-          color: ${Color.Raspberry};
-        }
-      `}</style>
     </>
   );
 };

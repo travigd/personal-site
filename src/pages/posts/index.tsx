@@ -38,7 +38,7 @@ const PostIndex: NextPage<Props> = ({ pages }) => {
         </p>
         <ol>
           {pages.map(({ slug, about }) => (
-            <div>
+            <div key={slug}>
               <h3>
                 <Link href={`/posts/${slug}`} key={slug} className="block">
                   {about.title}
