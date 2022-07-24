@@ -1,10 +1,12 @@
 import mdx from "@next/mdx";
 import remarkGfm from "remark-gfm";
 
+import rehypeHighlight from "rehype-highlight";
+
 const withMDX = mdx({
   options: {
     remarkPlugins: [remarkGfm],
-    rehypePlugins: [],
+    rehypePlugins: [[rehypeHighlight, { subset: false }]],
   },
 });
 
@@ -16,5 +18,9 @@ export default withMDX({
       use: "@svgr/webpack",
     });
     return config;
+  },
+  experimental: {
+    runtime: "nodejs",
+    serverComponents: true,
   },
 });

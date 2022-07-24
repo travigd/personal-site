@@ -27,7 +27,7 @@ const PostIndex: NextPage<Props> = ({ pages }) => {
           something (and even, rarely, I find something I want to share with the
           world).
         </p>
-        <p>
+        <p className="italic">
           Disclaimer: I'm a developer but I am not your developer. Everything
           here is accurate only as far as I could be bothered to check it. If
           you notice anything wrong, please let me know by{" "}
@@ -66,10 +66,12 @@ const getStaticProps: GetStaticProps<Props> = async () => {
       const page = await import(`./${slug}`);
       return {
         slug: slug.substring(0, slug.length - 4),
-        about: page.ABOUT,
+        about: page.ABOUT as PageAbout,
       };
     })
   );
+  // Sort in descending date order
+  pages.sort((a, b) => (a.about.date > b.about.date ? -1 : 1));
   return {
     props: {
       pages,

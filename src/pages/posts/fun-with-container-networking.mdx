@@ -75,7 +75,7 @@ army knife of Linux networking.
 
 Creating a network namespace is a single command.
 
-```bash
+```
 $ ip netns add container-one
 ```
 
@@ -83,7 +83,7 @@ We can execute commands within the namespace with the `ip netns exec` command.
 For example, let's look at all the configured interfaces (links in `iproute2`
 terminology) in the new namespace.
 
-```sh
+```
 $ ip netns exec container-one ip link list
   1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
       link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
@@ -131,7 +131,7 @@ usually uses the notation `type eth0`. Since long strings of arguments can be
 hard to read, I've added line breaks to the commands below to make it easier to
 read.
 
-```sh
+```
 # Create a new veth pair.
 # One side of the veth will be named veth1 and the other will be named veth1a.
 $ ip link add veth1 \
@@ -162,7 +162,7 @@ $ ip -n container-one link set eth0 up
 We can see the state of the world as seen by the host and container network
 namespaces:
 
-```sh
+```
 # From the host's perspective...
 # (note: this output will depend on your host's network configuration)
 $ ip link list
@@ -208,7 +208,7 @@ uninitiated, the `192.168.XXX.XXX` range is reserved for local networking
 &mdash; like your home LAN &mdash; and the `/24` means that any address in the
 `192.168.99.0` belongs to our network).
 
-```sh
+```
 # Add 192.168.99.1 to the host's interface
 $ ip addr add 192.168.99.1/24 dev veth1
 # Add 192.168.99.2 to the container's interface
@@ -218,7 +218,7 @@ $ ip -n container-one addr add 192.168.99.2/24 dev eth0
 Okay, cool, wonderful and awesome! Now that we have IP addresses assigned to the
 interfaces, we can ping it!
 
-```sh
+```
 # Ping the container from the host
 $ ping -c 1 192.168.99.2
 PING 192.168.99.2 (192.168.99.2) 56(84) bytes of data.
@@ -247,7 +247,7 @@ your router), and the internet (via your router). We can see these routes
 outside the scope of this discussion, but you can see these routes with
 `ip route list table local`).
 
-```sh
+```
 $ ip route list
 default via 192.168.16.1 dev ens4
 192.168.16.0/24 via 192.168.16.0/24 dev ens4 scope link
@@ -297,7 +297,7 @@ which is usually pretty useful.
 
 We can create a bridge in just a few commands:
 
-```sh
+```
 $ ip link add bridge0 type bridge
 $ ip link set bridge0 up
 
@@ -350,7 +350,7 @@ $ ip netns exec container-one ping -c 1 192.168.99.1
 Let's also quickly create another network namespace and connect it to the
 bridge!
 
-```sh
+```
 $ ip netns add container-two
 $ ip link add veth2 \
   type veth \
@@ -428,7 +428,7 @@ By default, the kernel will not forward packets between interfaces, so we need
 to tell the kernel that it should (and configure which pathways should be
 allowed for forwarding).
 
-```sh
+```
 # First, we'll need to tell the kernel that it should forward packets between
 # interfaces. By default, the kernel sees a packet coming in on `bridge0` and
 # won't automatically forward it out of `ens4`.
@@ -507,7 +507,7 @@ so here are a few lessons learned.
   You'll need to create the routing rules that were added by default manually.
   For example,
 
-  ```sh
+  ```
   # 88 is an arbitrary number; custom routing tables are identified by integers
   # in the range [1,252]. You can define a name by adding an entry to
   # /etc/iproute2/rt_tables.
@@ -527,7 +527,7 @@ so here are a few lessons learned.
 - If you, like me, wish to filter access to internal subnets, the following
   should work:
 
-  ```sh
+  ```
   RANGES="10.0.0.0/8 100.64.0.0/10 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16"
   for cidr in $RANGES; do
     iptables -A FORWARD -i bridge0 -d $cidr -j REJECT
@@ -545,7 +545,7 @@ so here are a few lessons learned.
 export default function Page({ children }) {
   return (
     <PageLayout pageTitle={ABOUT.title}>
-      <div className="prose lg:prose-xl">{children}</div>
+      <div className="prose">{children}</div>
     </PageLayout>
   );
 }

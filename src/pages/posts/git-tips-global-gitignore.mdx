@@ -1,0 +1,115 @@
+import { PageLayout } from "../../layout/page";
+
+export const ABOUT = {
+  title: `Turning every repo into a playground with global .gitignore`,
+  summary: `Unlock some productivity in your development workflow by creating small, script-y files that aren't included in your pull requests or commits.`,
+  date: "2022-07-23",
+};
+
+# {ABOUT.title}
+
+The main motivation for this blog post was to share an interesting way that I
+often use to play with code. Often times I want to write a few simple
+scripts/programs to help figure out how a certain function or library works, but
+these files shouldn't end up in my pull requests or commit.
+
+For example, when dealing with implementing
+[container networking](/posts/fun-with-container-networking) in Go, I want to
+test and play with various functions outside of actually running the full
+project. Ideally, this could be done with unit tests, but some things are easier
+to test with unit tests than others (and creating custom network configuration
+is not easily testible -- at least not without a bigger investment into test
+infrastructure than I'm willing to make!).
+
+Go is famously a compiled language with no real REPL, so my solution is to
+create files in an ignored `.untracked` directory (which is added to
+`~/.gitignore`). For example, I might have `.untracked/test_network_ns/main.go`
+as a simple wrapper "script" that calls the function with various arguments.
+
+Some things go beyond one-off scripts as well! In my `$DAYJOB`, I work on a
+Python codebase. Python **does** have a REPL, which is really great for poking
+around! But I also don't want to have to run the same sets of imports and setup
+code at the start of every REPL session. Instead, I add all those imports and
+setup code to a `.untracked/repl.py` file and run from the command line with
+`python3 -i .untracked/repl.py` (the `-i` option says to execute the script then
+start an interactive session).
+
+For example, my `$DAYJOB` script looks something like this:
+
+```python
+# repl.py
+# Import main first since Flask requires weird things with circular imports
+# that break if main isn't the first thing imported
+import main
+
+from models imports *
+from app import db, mylib, ...
+
+db = db.connect("postgres://...")
+me = User.load(db, id=1)
+widget = Widget.load(db, id=123)
+```
+
+It's pretty easy to use at the command line and saves me a lot of typing.
+
+```python
+# python3 -i .untracked/repl.py
+>>> mylib.do_something(user=me, widget=widget)
+```
+
+## How do?
+
+There's two steps!
+
+First, create your `~/.gitignore` file (you can copy mine from below!).
+
+Second, tell Git to use this file:
+
+```
+git config --global core.excludesfile ~/.gitignore
+```
+
+This will add a section to your Git configuration file at `~/.gitconfig`:
+
+```
+[core]
+  excludesfile = ~/.gitignore
+```
+
+## What about _your_ .gitignore, Travis?
+
+Here it is!
+
+```
+.DS_Store
+.idea/
+.vscode/
+.venv
+*.swp
+.envrc
+untracked/
+.untracked/
+```
+
+Nothing terribly interesting there, but a few notes:
+
+- I exclude many IDE files (such as `.idea` and `.vscode`) so that I don't have
+  to deal with manually excluding them or adding them to each individual
+  repository's `.gitignore`.
+- I use [direnv](https://direnv.net) to manage environment variables across
+  projects (e.g., determining the Kubernetes context depending on which project
+  I'm currently in or automatically activating a Python virtual environment).
+  It's super cool and more people should check it out.
+- The `.venv` directory is where I initialize project-specific virtual
+  environments for Python projects if I need to (+ direnv to auto-activate
+  them!).
+- The `.untracked` and `untracked` directories. I prefer to use `.untracked` but
+  some things don't work with hidden directories (such as Python imports).
+
+export default function Page({ children }) {
+  return (
+    <PageLayout pageTitle={ABOUT.title}>
+      <div className="prose">{children}</div>
+    </PageLayout>
+  );
+}
