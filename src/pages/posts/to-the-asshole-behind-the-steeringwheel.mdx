@@ -1,0 +1,163 @@
+import Image from "next/image";
+import { PageLayout } from "../../layout/page";
+
+import bikeRoute from "../../../public/uploads/2022-07-27-belltown-gasworks-bike-route.png";
+import carRoute from "../../../public/uploads/2022-07-27-belltown-gasworks-car-route.png";
+
+export const ABOUT = {
+  title: `To the asshole behind the steering wheel`,
+  summary: `An open letter from someone who has been assaulted just for daring to ride a bicycle in a bike lane.`,
+  date: "2022-07-27",
+};
+
+# {ABOUT.title}
+
+## Part I: Rant
+
+A few weeks ago, I was biking in Seattle with two friends. It was a lovely
+(sunny!) Seattle summer day, and we decided to bike up to Gasworks park to enjoy
+a Whiteclaw (or three) and admire the city we get to call home.
+
+Along a certain section of our route, a man in a car driving the opposite
+direction shouted at us: <span className="tracking-tight font-bold">"GET OUT OF
+THE FUCKING ROAD."</span>
+
+This is a rather common phenomenon, admittedly. I can't count the number of
+times I've been screamed or honked at by a motorist while on my bike (despite
+having been biking as a primary mode of transportation only since around March
+of this year). But this particular incident struck a nerve.
+
+Maybe it was because I was with my friends and felt the need to be hypervigilant
+of their safety. After all, the only thing worse than a _cyclist_ is a gaggle of
+cyclists. We were riding two abreast after all (it's legal in Seattle and means
+we're generally less likely to be passed without nearly enough space for
+safety).
+
+Maybe it was because I was conscious of the fact that if I had tried to stay
+closer to the row of parked cars to our right (thereby allowing cars to pass and
+ignoring the dangers that presents to cyclists), I could be easily killed by
+someone opening their car door. This is colloquially known as _dooring_ by those
+who bicycle, and is especially a problem with so-called "bicycle gutters"
+(unprotected, paint-only bike lanes, often adjacent to parking for cars).
+
+Maybe it was because we spent many minutes trying to figure out the safest route
+to take (_i.e._, the route that involved the fewest interaction with cars as
+possible). Maybe it was because the safer route that we had chosen was about
+three times as long as the direct route for motorists. Maybe it was because this
+is a choice that has to be made constantly by cyclists.
+
+<figure className="not-prose flex flex-col gap-4">
+  <div
+    className={"flex flex-col lg:flex-row items-center justify-center gap-4 "}
+  >
+    <div className="flex border border-gray-500">
+      <Image
+        src={carRoute}
+        alt="A map showing the direct route via car from Belltown, Seattle to Gas Works Park (taking 11 minutes at 3.8 miles)"
+        style={{ display: "block" }}
+      />
+    </div>
+    <div className="flex border border-gray-500">
+      <Image
+        src={bikeRoute}
+        alt="A map showing the rather roundabout route via car from Belltown, Seattle to Gas Works Park (taking 51 minutes at 8.9 miles)"
+      />
+    </div>
+  </div>
+  <figcaption className="text-sm">
+    The direct route for cars takes the Aurora bridge and lands just about
+    directly at Gas Works Park where there is plenty of parking to accommodate.
+    The rather indirect route for bicylists is about three times as long. This
+    particular route avoids the Aurora and Ballard Bridges which are notoriously
+    hostile towards cyclists [^bridge]. Admittedly, this route is absolutely
+    lovely. The shoreline park along Puget Sound leads into a protected bike
+    path through a trainyard in Interbay with its own charm, and the Ballard
+    Locks are really neat (though you have to dismount your bike to traverse
+    them). This is actually one of the reasons I enjoy biking: bike paths are
+    always much more pleasant than freeways and stroads.
+  </figcaption>
+</figure>
+
+[^bridge]:
+    Most cyclists elect to walk over any of the bridges, if they take them at
+    all, since the Ballard, Fremont, and Aurora Bridges all have only four foot
+    wide sidewalks and biking in automobile traffic over the bridge is
+    incredibly nerve inducing.
+
+Maybe the reason the asshole's comment bothered me so much was because that
+brief section of road &mdash; the only section of path on our journey that was
+shared with cars &mdash; was the infamous
+[missing link of the Burke-Gilman trail](https://mynorthwest.com/3484256/seattle-loses-battle-burke-gilman-trail-missing-link/)
+(a shared use bike and pedestrian trail that connects Golden Gardens Park, along
+the Sound to the west of Seattle, to Bothell, northeast of Seattle, modulo the
+aforementioned missing section). That this happened during the only two minutes
+of our journey shared with cars was an irony certainly lost to him, but not to
+myself.
+
+Or maybe the reason the asshole's comment bothered me so much was that only a
+few weeks before, I had survived an intentional hit-and-run by a motorist in
+Chicago; a hit-and-run where the driver made eye contact with me and accelerated
+directly into me; a hit-and-run that occurred on a so-called designated safe
+bicycle path; a hit-and-run where multiple people witnessed the assault, where I
+got the assaulter's license plate, and where when I filed a police report, I was
+victim-blamed before ultimately the Chicago Police Department did exactly
+nothing.
+
+But then again, maybe it was because I'm exhausted by trying to simply live my
+life while bicycling to work, to the grocery store, to the gym, to my friend's
+apartment for video games. I don't even consider myself a "bicycle person"
+[(nor do many people who happen to be biking along the street)](https://www.youtube.com/watch?v=vMed1qceJ_Q)
+&mdash; just a person who likes getting around town (and who also has realized
+that biking is actually kind of fun &mdash; when you're able to avoid homicidal
+motorists).
+
+## Part II: Jesus fucking christ
+
+[We're](https://www.theguardian.com/environment/2022/apr/04/ipcc-report-now-or-never-if-world-stave-off-climate-disaster)
+[experiencing](https://news.un.org/en/story/2022/03/1114322)
+[a climate](https://www.aljazeera.com/news/2022/4/4/now-or-never-to-avoid-climate-catastrophe-un)
+[catastrophe](https://www.grid.news/story/climate/2022/07/25/the-colorado-river-drought-is-the-first-climate-disaster-the-us-legally-has-to-deal-with/).
+Getting personal-use cars off the road should be one of our top priorities (yes,
+[this includes electric cars for myriad reasons](https://www.planetizen.com/news/2021/12/115532-study-ev-adoption-isnt-enough-car-centric-culture-needs-change)).
+[Traffic fatalities are at an all-time high.](https://www.nhtsa.gov/press-releases/early-estimate-2021-traffic-fatalities)
+[Car-centric infrastructure is bankrupting American cities.](https://www.youtube.com/watch?v=7IsMeKl-Sv0)
+
+Why the fuck are we not doing more? Bicycle and pedestrian infrastructure in
+this country is abysmal, to say the least. Even in Seattle, a comparatively
+bicycle-friendly city,
+[Bicycle infrastructure always plays second fiddle to cars](https://www.theurbanist.org/2022/03/16/alaskan-way-bike-trail/)
+[^cruise-ships].
+
+[^cruise-ships]:
+    This example is particularly egregious because it prioritizes cars being
+    able to drive directly up to cruise ships, which themselves are a massive
+    source of greenhouse gas emissions. Not to mention the fact that Seattle
+    (which bills itself as a climate-friendly city in a climate-friendly state)
+    has decided to rip up one waterfront highway
+    [only to replace it with another](https://www.theurbanist.org/2022/03/20/surface-highway-undermines-seattles-waterfront-park/).
+
+I should be able to bike to a fucking park without fearing for my life. As it
+stands today, I wince every time I notice an oncoming vehicle's headlights: _How
+easy would it be for them to swerve every so slightly and kill me right now?_ is
+not an uncommon thought among people who bike (my two friends included).
+
+If this post sounds indignant, it's only because that's how I feel. If you want
+to learn more, go watch some
+[Not Just Bikes](https://www.youtube.com/c/notjustbikes). If you're in Seattle,
+go read and donate to [The Urbanist](https://www.theurbanist.org) (word of
+caution: reading these articles might infuriate you if you're anything like me).
+Scream! Shout! Leave extra space when passing bicycles! Advocate for more
+bicycle infrastructure (I promise this benefits motorists too &mdash; we don't
+want to be in your way, y'all are crazy).
+
+As for me, I'll keep biking.
+
+---
+
+export default function Page({ children }) {
+  return (
+    <PageLayout pageTitle={ABOUT.title}>
+      <div className="prose">{children}</div>
+    </PageLayout>
+  );
+}

@@ -45,7 +45,7 @@ const PostIndex: NextPage<Props> = ({ pages }) => {
                 </Link>
                 <div className="text-gray-500 text-sm">{about.date}</div>
               </h3>
-              <p>{about.summary}</p>
+              <p className="text-sm">{about.summary}</p>
             </div>
           ))}
         </ol>
